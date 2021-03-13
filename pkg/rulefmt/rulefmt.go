@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -297,6 +298,19 @@ func ParseFile(file string) (*RuleGroups, []error) {
 	rgs, errs := Parse(b)
 	for i := range errs {
 		errs[i] = errors.Wrap(errs[i], file)
+	}
+	return rgs, errs
+}
+
+// ParseStdin reads and parses rules from stdin
+func ParseStdin() (*RuleGroups, []error) {
+	b, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return nil, []error{errors.Wrap(err, "stdin")}
+	}
+	rgs, errs := Parse(b)
+	for i := range errs {
+		errs[i] = errors.Wrap(errs[i], "stdin")
 	}
 	return rgs, errs
 }

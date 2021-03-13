@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -85,6 +86,24 @@ func LoadFile(filename string) (*Config, error) {
 		return nil, errors.Wrapf(err, "parsing YAML file %s", filename)
 	}
 	cfg.SetDirectory(filepath.Dir(filename))
+	return cfg, nil
+}
+
+// LoadStdin parses the stdin YAML into a Config.
+func LoadStdin() (*Config, error) {
+	content, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := Load(string(content))
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing YAML from stdin")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil,  errors.Wrap(err, "obtaining working directory")
+	}
+	cfg.SetDirectory(cwd)
 	return cfg, nil
 }
 

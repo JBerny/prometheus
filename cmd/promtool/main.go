@@ -57,8 +57,8 @@ func main() {
 	checkConfigCmd := checkCmd.Command("config", "Check if the config files are valid or not.")
 	configFiles := checkConfigCmd.Arg(
 		"config-files",
-		"The config files to check.",
-	).Required().ExistingFiles()
+		"The config files to check, leave empty for stdin.",
+	).ExistingFiles()
 
 	checkWebConfigCmd := checkCmd.Command("web-config", "Check if the web config files are valid or not.")
 	webConfigFiles := checkWebConfigCmd.Arg(
@@ -69,8 +69,8 @@ func main() {
 	checkRulesCmd := checkCmd.Command("rules", "Check if the rule files are valid or not.")
 	ruleFiles := checkRulesCmd.Arg(
 		"rule-files",
-		"The rule files to check.",
-	).Required().ExistingFiles()
+		"The rule files to check, leave empty for stdin.",
+	).ExistingFiles()
 
 	checkMetricsCmd := checkCmd.Command("metrics", checkMetricsUsage)
 
@@ -215,8 +215,13 @@ func main() {
 // CheckConfig validates configuration files.
 func CheckConfig(files ...string) int {
 	failed := false
-
-	for _, f := range files {
+	var inputs []string
+	if len(files) == 0 {
+		inputs = []string{""}
+	} else {
+		inputs = files
+	}
+	for _, f := range inputs {
 		ruleFiles, err := checkConfig(f)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "  FAILED:", err)
@@ -274,8 +279,13 @@ func checkFileExists(fn string) error {
 
 func checkConfig(filename string) ([]string, error) {
 	fmt.Println("Checking", filename)
-
-	cfg, err := config.LoadFile(filename)
+	var cfg *config.Config
+	var err error
+	if filename == "" {
+		cfg, err = config.LoadStdin()
+	} else {
+		cfg, err = config.LoadFile(filename)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -354,8 +364,13 @@ func checkTLSConfig(tlsConfig config_util.TLSConfig) error {
 // CheckRules validates rule files.
 func CheckRules(files ...string) int {
 	failed := false
-
-	for _, f := range files {
+	var inputs []string
+	if len(files) == 0 {
+		inputs = []string{""}
+	} else {
+		inputs = files
+	}
+	for _, f := range inputs {
 		if n, errs := checkRules(f); errs != nil {
 			fmt.Fprintln(os.Stderr, "  FAILED:")
 			for _, e := range errs {
@@ -374,9 +389,14 @@ func CheckRules(files ...string) int {
 }
 
 func checkRules(filename string) (int, []error) {
+	var rgs *rulefmt.RuleGroups
+	var errs []error
 	fmt.Println("Checking", filename)
-
-	rgs, errs := rulefmt.ParseFile(filename)
+	if filename == "" {
+		rgs, errs = rulefmt.ParseStdin()
+	} else {
+		rgs, errs = rulefmt.ParseFile(filename)
+	}
 	if errs != nil {
 		return 0, errs
 	}
